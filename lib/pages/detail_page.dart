@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:sqflite/sqflite.dart';
+import 'package:encrypt/encrypt.dart' as encrypt;
+
 import 'package:pass_app/data/db_helper.dart';
 import 'package:pass_app/data/password_item.dart';
 
@@ -30,15 +31,38 @@ class _DetailPageState extends State<DetailPage> {
   @override
   void initState() {
     super.initState();
+
     if (widget.type == 'edit') {
+      final String _decryptedPass = _decrypt(widget.data!.password);
       _nameController = TextEditingController(text: widget.data!.name);
       _usernameController = TextEditingController(text: widget.data!.username);
-      _passwordController = TextEditingController(text: widget.data!.password);
+      _passwordController = TextEditingController(text: _decryptedPass);
     } else {
       _nameController = TextEditingController();
       _usernameController = TextEditingController();
       _passwordController = TextEditingController();
     }
+  }
+
+  String _encrypt(String pass) {
+    final key = encrypt.Key.fromUtf8('Ai01CfCJbSHDSJDKgZAKgPjq11iLnOEV');
+    final iv = encrypt.IV.fromLength(16);
+    final encrypter = encrypt.Encrypter(encrypt.AES(key));
+
+    final encrypted = encrypter.encrypt(pass, iv: iv);
+    print(encrypted.base64);
+    return encrypted.base64;
+  }
+
+  String _decrypt(String pass) {
+    final key = encrypt.Key.fromUtf8('Ai01CfCJbSHDSJDKgZAKgPjq11iLnOEV');
+    final iv = encrypt.IV.fromLength(16);
+    final encrypter = encrypt.Encrypter(encrypt.AES(key));
+
+    final decrypted =
+        encrypter.decrypt(encrypt.Encrypted.fromBase64(pass), iv: iv);
+
+    return decrypted;
   }
 
   @override
@@ -77,26 +101,16 @@ class _DetailPageState extends State<DetailPage> {
   Future<void> addEle(String name, String username, String password) async {
     final dbHelper = DatabaseHelper.instance;
     final _date = DateTime.now();
-
-    // _listOfPasswords.add(
-    //   Password(
-    //     id: password.id,
-    //     name: password.name,
-    //     username: password.username,
-    //     password: password.password,
-    //     date: _date,
-    //   ),
-    // );
+    final _cryptedPass = _encrypt(password);
 
     Map<String, dynamic> _row = {
       DatabaseHelper.columnId: _date.toString(),
       DatabaseHelper.columnName: name,
       DatabaseHelper.columnUsername: username,
-      DatabaseHelper.columnPassword: password,
+      DatabaseHelper.columnPassword: _cryptedPass,
       DatabaseHelper.columnDate: _date.toString(),
     };
-    final _idRow = await dbHelper.insert(_row);
-    print(_idRow);
+    await dbHelper.insert(_row);
     return;
   }
 
@@ -114,6 +128,12 @@ class _DetailPageState extends State<DetailPage> {
     return;
   }
 
+  Future<void> deleteEle(String id) async {
+    final dbHelper = DatabaseHelper.instance;
+    await dbHelper.delete(id);
+    return;
+  }
+
   Future<void> _copyToClipboard(String txt) async {
     await Clipboard.setData(ClipboardData(text: txt));
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -127,7 +147,7 @@ class _DetailPageState extends State<DetailPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.type == 'edit'
-            ? 'Detail - $_nameController'
+            ? 'Detail - ${_nameController.text}'
             : 'Create a new password'),
         centerTitle: true,
       ),
@@ -281,33 +301,51 @@ class _DetailPageState extends State<DetailPage> {
                   height: size.height * 0.04,
                 ),
                 ElevatedButton(
-                    onPressed: () async {
-                      if (widget.type == 'edit') {
-                        await editEle(
+                  onPressed: () async {
+                    if (widget.type == 'edit') {
+                      await editEle(
+                        _nameController.text,
+                        _usernameController.text,
+                        _passwordController.text,
+                      );
+                      Navigator.pop(context);
+                    } else {
+                      if (_formKey.currentState!.validate()) {
+                        await addEle(
                           _nameController.text,
                           _usernameController.text,
                           _passwordController.text,
                         );
                         Navigator.pop(context);
+                        // _controller.clear();
                       } else {
-                        if (_formKey.currentState!.validate()) {
-                          await addEle(
-                            _nameController.text,
-                            _usernameController.text,
-                            _passwordController.text,
-                          );
-                          Navigator.pop(context);
-                          // _controller.clear();
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Error'),
-                            ),
-                          );
-                        }
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Error'),
+                          ),
+                        );
                       }
+                    }
+                  },
+                  child: Text(widget.type == 'edit' ? 'Save' : 'Create'),
+                ),
+                if (widget.type == 'edit')
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      primary: Colors.red,
+                    ),
+                    onPressed: () async {
+                      await deleteEle(widget.data!.id);
+                      Navigator.pop(context);
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Deleted'),
+                        ),
+                      );
                     },
-                    child: Text(widget.type == 'edit' ? 'Save' : 'Create')),
+                    child: const Text('Delete'),
+                  ),
               ],
             ),
           ),

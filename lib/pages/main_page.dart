@@ -25,7 +25,6 @@ class _MainPageState extends State<MainPage> {
     setState(() {
       _loading = true;
     });
-    print('exe');
     final dbHelper = DatabaseHelper.instance;
     final allRows = await dbHelper.queryAllRows();
     for (var i = 0; i < allRows.length; i++) {
@@ -39,15 +38,11 @@ class _MainPageState extends State<MainPage> {
         ),
       ];
       _listOfPasswords.add(_data[0]);
-      print(_listOfPasswords[i].id);
-      print(_listOfPasswords[i].name);
-      print(_listOfPasswords.length);
     }
     setState(() {
       if (_listOfPasswords.isNotEmpty) {
         _hasData = true;
       }
-
       _loading = false;
     });
   }
@@ -83,12 +78,14 @@ class _MainPageState extends State<MainPage> {
                             trailing: IconButton(
                               onPressed: () {
                                 Navigator.of(context)
-                                    .push(MaterialPageRoute(
-                                  builder: (context) => DetailPage(
-                                    type: 'edit',
-                                    data: _listOfPasswords[index],
+                                    .push(
+                                  MaterialPageRoute(
+                                    builder: (context) => DetailPage(
+                                      type: 'edit',
+                                      data: _listOfPasswords[index],
+                                    ),
                                   ),
-                                ))
+                                )
                                     .then((value) {
                                   setState(() {
                                     _listOfPasswords.clear();
