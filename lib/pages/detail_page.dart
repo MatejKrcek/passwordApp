@@ -5,9 +5,14 @@ import 'package:pass_app/data/db_helper.dart';
 import 'package:pass_app/data/password_item.dart';
 
 class DetailPage extends StatefulWidget {
-  const DetailPage({Key? key, required this.type}) : super(key: key);
+  const DetailPage({
+    Key? key,
+    required this.type,
+    this.data,
+  }) : super(key: key);
 
   final String type;
+  final Password? data;
 
   @override
   _DetailPageState createState() => _DetailPageState();
@@ -19,16 +24,16 @@ class _DetailPageState extends State<DetailPage> {
   late TextEditingController _passwordController;
   final _formKey = GlobalKey<FormState>();
   List<Password> _listOfPasswords = [];
-  bool _visiblePass = false;
+  bool _visiblePass = true;
   String _passQuality = 'Low';
 
   @override
   void initState() {
     super.initState();
     if (widget.type == 'edit') {
-      _nameController = TextEditingController(text: 'data');
-      _usernameController = TextEditingController(text: 'data');
-      _passwordController = TextEditingController(text: 'data');
+      _nameController = TextEditingController(text: widget.data!.name);
+      _usernameController = TextEditingController(text: widget.data!.username);
+      _passwordController = TextEditingController(text: widget.data!.password);
     } else {
       _nameController = TextEditingController();
       _usernameController = TextEditingController();
@@ -92,6 +97,20 @@ class _DetailPageState extends State<DetailPage> {
     };
     final _idRow = await dbHelper.insert(_row);
     print(_idRow);
+    return;
+  }
+
+  Future<void> editEle(String name, String username, String password) async {
+    final dbHelper = DatabaseHelper.instance;
+    Map<String, dynamic> row = {
+      DatabaseHelper.columnId: widget.data!.id,
+      DatabaseHelper.columnName: name,
+      DatabaseHelper.columnUsername: username,
+      DatabaseHelper.columnPassword: password,
+      DatabaseHelper.columnDate: DateTime.now().toString(),
+    };
+
+    await dbHelper.update(row);
     return;
   }
 
@@ -263,20 +282,29 @@ class _DetailPageState extends State<DetailPage> {
                 ),
                 ElevatedButton(
                     onPressed: () async {
-                      if (_formKey.currentState!.validate()) {
-                        await addEle(
+                      if (widget.type == 'edit') {
+                        await editEle(
                           _nameController.text,
                           _usernameController.text,
                           _passwordController.text,
                         );
                         Navigator.pop(context);
-                        // _controller.clear();
                       } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Error'),
-                          ),
-                        );
+                        if (_formKey.currentState!.validate()) {
+                          await addEle(
+                            _nameController.text,
+                            _usernameController.text,
+                            _passwordController.text,
+                          );
+                          Navigator.pop(context);
+                          // _controller.clear();
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Error'),
+                            ),
+                          );
+                        }
                       }
                     },
                     child: Text(widget.type == 'edit' ? 'Save' : 'Create')),

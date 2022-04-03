@@ -39,6 +39,7 @@ class _MainPageState extends State<MainPage> {
         ),
       ];
       _listOfPasswords.add(_data[0]);
+      print(_listOfPasswords[i].id);
       print(_listOfPasswords[i].name);
       print(_listOfPasswords.length);
     }
@@ -81,14 +82,19 @@ class _MainPageState extends State<MainPage> {
                             subtitle: Text(_listOfPasswords[index].username),
                             trailing: IconButton(
                               onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const DetailPage(
-                                      type: 'edit',
-                                    ),
+                                Navigator.of(context)
+                                    .push(MaterialPageRoute(
+                                  builder: (context) => DetailPage(
+                                    type: 'edit',
+                                    data: _listOfPasswords[index],
                                   ),
-                                );
+                                ))
+                                    .then((value) {
+                                  setState(() {
+                                    _listOfPasswords.clear();
+                                  });
+                                  _loadEle();
+                                });
                               },
                               icon: const Icon(Icons.arrow_forward_ios),
                             ),
@@ -101,14 +107,18 @@ class _MainPageState extends State<MainPage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const DetailPage(
-                type: 'create',
-              ),
+          Navigator.of(context)
+              .push(MaterialPageRoute(
+            builder: (context) => const DetailPage(
+              type: 'create',
             ),
-          );
+          ))
+              .then((value) {
+            setState(() {
+              _listOfPasswords.clear();
+            });
+            _loadEle();
+          });
         },
         backgroundColor: Theme.of(context).colorScheme.primary,
         child: const Icon(Icons.add),
